@@ -1,0 +1,107 @@
+---
+title: "M04Guided"
+author: "Alanna Hazlett"
+date: "2024-02-17"
+output: html_document
+---
+```{r include=FALSE}
+library(tidyverse)
+library(palmerpenguins)
+Data<-penguins
+Gentoo<-Data %>% 
+  filter(species=="Gentoo") %>% 
+  filter(!is.na(flipper_length_mm)) %>% 
+  filter(!is.na(body_mass_g))
+```
+# Problem 1
+
+Produce a plot of body mass against flipper length for Gentoo penguins. Write the
+estimated linear regression equation.
+```{r}
+result<-lm(body_mass_g~flipper_length_mm,data=Gentoo)
+summary(result)
+ggplot2::ggplot(Gentoo,aes(x=flipper_length_mm,y=body_mass_g))+
+  geom_point()+
+  geom_smooth(method="lm",se=FALSE)+
+  labs(x="Flipper Length (mm)",y="Body Mass (g)",title="Gentoo Species Body Mass against Flipper Length")
+```
+The estimated linear regression equation is:
+$$\hat y=\hat\beta_{0}+\hat\beta_{1}x$$
+$$\hat y = -6787.281 + 54.623x$$ 
+
+# Problem 2
+
+What is the change in the predicted body mass (in grams) when flipper length increases
+by 1mm, for Gentoo penguins? Also report the corresponding 95% confidence interval
+for the change in the predicted body mass (in grams) when flipper length increases by
+1mm.\
+\ 
+The predicted body mass increases by 54.623 grams when flipper length increases by 1mm.
+```{r}
+confint(result,level=0.95)[2,]
+```
+ 
+# Problem 3  
+ 
+Conduct a hypothesis test to determine whether or not there is a linear association
+between body mass and flipper length for Gentoo penguins. State the hypotheses,
+p-value, and conclusion in context.\
+
+$$ H_{0}: \beta_{1} = 0\\H_{a}: \beta_{1} \neq 0 $$ 
+\
+The p-value is 2e-16, which is smaller than our significance level of 0.05. This means that we reject our null hypothesis of slope = 0 and our data supports the alternative hypothesis that slope does not equal zero. This indicates that there is a linear association between our variables. 
+\
+
+# Problem 4
+
+Are your results from parts 2 and 3 consistent? Briefly explain.\
+Yes, our hypothesis test indicates that slope does not equal zero.\ 
+Our confidence interval shows that we have 95% confidence that our slope is within 44.67 and 64.58, and zero is not within this interval, so slope is not equal to zero. 
+
+# Problem 5 
+
+Estimate the mean body mass (in grams) for Gentoo penguins with flipper lengths of
+200mm. Also report the 95% confidence interval for the mean body mass (in grams)
+for Gentoo penguins with flipper lengths of 200mm
+\
+$$\hat y = -6787.281 + 54.623(200)\\
+\hat y = 4137.319g$$ 
+```{r}
+newdata<-data.frame(flipper_length_mm = 200)
+predict(result,newdata,level=0.95,interval="confidence")
+```
+\
+The confidence interval is from 3954.45g to 4319.99g.\
+
+# Problem 6
+
+Report the 95% prediction interval for the body mass (in grams) of a Gentoo penguin
+with flipper length of 200mm
+```{r}
+predict(result,newdata,level=0.95,interval="prediction")
+```
+\
+The prediction interval is from 3401.12g to 4873.32g.\
+
+# Problem 7
+
+A researcher hypothesizes that for Gentoo penguins, the predicted body mass increases
+by more than 50 g for each additional mm in flipper length. Conduct an appropriate
+hypothesis test. What is the null and alternative hypotheses, test statistic, and conclusion?\
+$$ H_{0}: \beta_{1} = 50\\H_{a}: \beta_{1} > 50 $$ 
+The test statistic is:
+$$ t = \frac {\hat \beta_{1} - 50} {se(\hat \beta_{1})}$$
+$$ t =  \frac {54.623 - 50}{5.028} = 0.91945$$
+
+```{r}
+qt(0.95,121)
+1-pt(0.9194511,df=123-2)
+```
+Our test statistic is less than our critical value, so we fail to reject the null hypothesis.\
+The p-value is larger than our significance level of 0.05, so we fail to reject the null hypothesis.
+
+
+
+
+
+
