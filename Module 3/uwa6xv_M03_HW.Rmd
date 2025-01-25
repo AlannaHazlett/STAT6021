@@ -1,0 +1,107 @@
+---
+title: "uwa6xv_M03_HW"
+author: "Alanna Hazlett"
+date: "2024-02-14"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+We will use the dataset “copier.txt” for this question. The Tri-City Office
+Equipment Corporation sells an imported copier on a franchise basis and performs
+preventive maintenance and repair service on this copier. The data have been collected
+from 45 recent calls on users to perform routine preventive maintenance service; for
+each call, Serviced is the number of copiers serviced and Minutes is the total number
+of minutes spent by the service person.\
+
+# Problem 1\
+
+**(a)**\
+The predictor variable is "Serviced", the number of copiers serviced. The response variable is "Minutes", the total number of minutes spent servicing the copiers.\
+**(b)**\
+Produce a scatterplot of the two variables. How would you describe the relationship between the number of copiers serviced and the time spent by the service
+person?\
+```{r include=FALSE}
+library(tidyverse)
+```
+```{r}
+copier<-read.table(file="copier.txt", header = TRUE)
+ggplot(copier,aes(x=Serviced,y=Minutes))+
+  geom_point()+
+  labs(x="Copiers Serviced",y="Minutes",title="Minutes against Number of Copiers Serviced")
+```
+\
+The relationship between number of copiers serviced and minutes spent servicing the copiers appears to be a positive linear relationship. As the number of copiers increase, so does the number of minutes spent servicing them. \
+**(c)**\
+What is the correlation between the total time spent by the service person and
+the number of copiers serviced? Interpret this correlation contextually.\
+```{r}
+cor(copier$Serviced,copier$Minutes)
+```
+\
+The correlation is a positive value, which indicates that as Serviced increases, so does Minutes. It is a strong association, in that the value is near 1, meaning that the number of copiers serviced highly affects the number of minutes servicing the copiers.\
+**(d)**\
+Can the correlation found in part 1c be interpreted reliably? Briefly explain.\
+The correlation of 0.97 can be interpreted reliably, because there does not appear to be any curves or distinct outliers in our scatterplot that would alter our correlation value.\
+**(e)**\
+Use the lm() function to fit a linear regression for the two variables. Where are
+the values of beta1, beta0, R2, and sigma2 for this linear regression?
+```{r}
+result<-lm(Minutes~Serviced,data=copier)
+summary(result)
+```
+
+$$\hat\beta_{1}=15.0352\ this\ is found\ in\ Estimate\ column\ and\ (Intercept)\ row$$
+$$\hat\beta_{0}=-0.5802\ this\ is\ found\ in\ Estimate\ column\ and\ Serviced\ row$$
+$$R^2=0.9575\ this\ is\ the\ value\ associated\ with\ Multiple\ R-squared$$
+$$\hat\sigma^2 is\ estimated\ by\ s^2,$$
+$$s^2=(8.914)^2=79.459396$$
+$$s\ is\ the\ value\ associated\ with\ Residual\ standard\ error$$
+
+**(f)**\
+Interpret the values of beta1, beta0 contextually. Does the value of beta0 make sense in
+this context?\
+\
+$$\hat\beta_{1}$$ is the slope, as Serviced increases by one copier, the minutes increases by 15.0352 minutes, on average.\
+\
+$$\hat\beta_{0}$$ is the estimated intercept. Based on our model the number of minutes it would take to service zero copiers is -0.5802 minutes. This is not possible as we can not measure time negatively.\
+\
+**(g)**\
+Use the anova() function to produce the ANOVA table for this linear regression.
+What is the value of the ANOVA F statistic? What null and alternative hypotheses are being tested here? What is a relevant conclusion based on this ANOVA
+F statistic?\
+```{r}
+anova.tab<-anova(result)
+anova.tab
+```
+\
+The F statistic is: $$ F=\frac{MS_{R}}{MS_{res}}=968.66 $$ 
+Our hypotheses are: 
+ $$H_{0}:\beta_{1} = 0 $$
+  $$H_{a}: \beta_{1} \neq 0 $$
+\
+The critical value is:
+```{r}
+qf(1-0.05, 1, 45-2)
+```
+Our F statistic of 968.66 is larger than our critical value of 4.06 (alternatively our p-value of 2.2X10^-16 is smaller than 0.05), so we reject our null hypothesis of $$ \beta_{1}=0 $$ our data supports the alternative hypothesis of the slope being different from 0, which indicates a linear association between our variables of Serviced and Minutes for the copiers. \
+\
+
+# Problem 2\
+
+(You may only use R as a simple calculator or to find p-values or critical values)
+Suppose that for n = 6 students, we want to predict their scores on the second quiz
+using scores from the first quiz. The estimated regression line is
+y = 20 + 0.8x\
+\
+**(e)**\
+```{r}
+qf(1-0.05,1,4)
+(1-pf(25.333,1,4)) * 2
+```
+
+
+
+
+
+

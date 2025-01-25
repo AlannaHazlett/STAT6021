@@ -1,0 +1,152 @@
+---
+title: "M03Guided"
+author: "Alanna Hazlett"
+date: "2024-02-11"
+output:
+  html_document: default
+  pdf_document: default
+---
+#Problem 1\
+We will explore the relationship between the response variable body mass (in grams),
+body_mass_g, and the predictor length of the flippers (in mm), flipper_length_mm.\
+Produce a scatterplot of the two variables. How would you describe the relationship
+between the two variables? Be sure to label the axes and give an appropriate title.
+Based on the appearance of the plot, does a simple linear regression appear reasonable
+for the data?
+```{r}
+library(tidyverse)
+library(palmerpenguins)
+Data<-penguins
+ggplot2::ggplot(Data,aes(x=flipper_length_mm,y=body_mass_g))+
+  geom_point()+
+  #geom_smooth(method="lm",se=FALSE)+
+  labs(x="Flipper Length (mm)",y="Body Mass (g)",title="Body Mass against Flipper Length")
+```
+\
+The relationship between the variables appear to be linear. A simple linear regression does seem appropriate for this data.\
+
+# Problem 2
+Produce a similar scatterplot, but with different colored plots for each species. How
+does this scatterplot influence your answer to the previous part?
+```{r}
+ggplot2::ggplot(Data,aes(x=flipper_length_mm,y=body_mass_g,color=species))+
+  geom_point()+
+  #geom_smooth(method="lm",se=FALSE)+
+  labs(x="Flipper Length (mm)",y="Body Mass (g)",title="Body Mass against Flipper Length")
+```
+\
+Within each species the linear relationship is maintained between flipper length and body mass. The Gentoo species is completely out of range of the other two species, Adelie and Chinstrap. 
+
+# Problem 3
+Regardless of your answer to the previous part, produce a scatterplot of body mass
+and flipper length for Gentoo penguins. Based on the appearance of the plot, does a
+simple linear regression appear reasonable for the data?
+
+```{r}
+Gentoo<-Data %>% 
+  filter(species=="Gentoo") %>% 
+  filter(!is.na(flipper_length_mm)) %>% 
+  filter(!is.na(body_mass_g))
+ggplot2::ggplot(Gentoo,aes(x=flipper_length_mm,y=body_mass_g))+
+  geom_point()+
+  #geom_smooth(method="lm",se=FALSE)+
+  labs(x="Flipper Length (mm)",y="Body Mass (g)",title="Gentoo Species Body Mass against Flipper Length")
+```
+\
+A simple linear regression appears reasonable for this data, because as you scan from left to right the data points seem even placed on either side of the estimated linear regression.
+
+# Problem 4
+What is the correlation between body mass and flipper length for Gentoo penguins.
+Interpret this correlation contextually. How reliable is this interpretation?
+For the rest of the questions, assume the assumptions to perform linear regression on
+Gentoo penguins are met.
+```{r}
+cor(Gentoo$flipper_length_mm,Gentoo$body_mass_g, use = "complete.obs")
+```
+The correlation is a postive value, which indicates that as the flipper length increases, so does the body mass. The correlation is moderate, with a value closer to 1 than to 0. 
+\
+
+# Problem 5 
+ Use the lm() function to fit a linear regression for body mass and flipper length for
+Gentoo penguins. Write out the estimated linear regression equation.
+```{r}
+result<-lm(body_mass_g~flipper_length_mm,data=Gentoo)
+summary(result)
+```
+The estimated linear regression equation is:
+
+$$
+\hat y=\hat\beta_{0}+\hat\beta_{1}x_{i}\\
+\hat y = -6787.281 + 54.623x
+$$
+\
+
+# Problem 6
+Interpret the estimated slope contextually.\
+As flipper length increases by 1mm, the body mass increases by 54.623g, on average.
+\
+
+# Problem 7
+Does the estimated intercept make sense contextually?\
+No, the estimated intercept does not make sense, as you can not have a negative value for body mass or a flipper length of zero. 
+\
+
+# Problem 8
+Report the value of R2 from this linear regression, and interpret its value contextually.
+R2 is 0.4937, which means that about 49.37% of the variation of body mass can be explained by flipper length for the Gentoo penguins. 
+\
+
+# Problem 9
+What is the estimated value for the standard deviation of the error terms for this
+regression model, sigma?
+s = 360.2
+\
+
+# Problem 10 
+For a Gentoo penguin which has a flipper length of 220mm, what is its predicted body
+mass in grams?\
+The predicted body mass of a Gentoo penguin with flipper length 220mm is 5229.67g.
+```{r}
+yhat<-result$coefficients[1] + result$coefficients[2]*220
+yhat
+```
+\
+
+# Problem 11
+Produce the ANOVA table for this linear regression. Using only this table, calculate
+the value of R2.
+```{r}
+anova.tab<-anova(result)
+anova.tab
+SST<-sum(anova.tab$"Sum Sq")
+SST
+anova.tab$"Sum Sq"[1]/SST
+```
+$$R^2 = \frac{SS_{R}}{SS_{T}} = \frac{15308045}{31004248} = 0.4937402 $$ 
+\
+
+# Problem 12
+What are the null and alternative hypotheses for the ANOVA F test?\
+ $$H_{0}: \beta_{1} = 0 $$
+ $$H_{a}: \beta_{1} \neq 0 $$
+ \
+ 
+# Problem 13
+Explain how the F statistic of 118.01 is found.\
+The F statistic is: $$ F=\frac{MS_{R}}{MS_{res}}=\frac{15308045}{129721} $$ 
+\
+
+# Problem 14
+ Write an appropriate conclusion for the ANOVA F test for this simple linear regression
+model.\
+Find the critical value:
+```{r}
+qf(1-0.05, 1, 123-2)
+```
+\
+Our F statistic of 118 is larger than our critical value of 3.92, so we reject our null hypothesis of $$ \beta_{1}=0 $$ our data supports the alternative hypothesis of the slope being different from 0, which indicates a linear association between our variables of flipper length and body mass for the Gentoo penguins. 
+
+
+
+
+
