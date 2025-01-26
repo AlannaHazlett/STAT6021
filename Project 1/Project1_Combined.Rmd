@@ -1,0 +1,197 @@
+---
+title: "Project 1 Combined"
+author: "Alanna Hazlett"
+date: "2024-03-20"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(MASS)
+library(broom)
+```
+```{r}
+diamonds<-read.csv("diamonds4.csv", header=TRUE)
+diamonds$color <- factor(diamonds$color, levels=c('D', 'E', 'F', 'G', 'H', 'I', 'J'))
+diamonds$cut <- factor(diamonds$cut, levels=c('Astor Ideal', 'Ideal', 'Very Good', 'Good'))
+diamonds$clarity <-factor(diamonds$clarity, levels=c('FL', 'IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1', 'SI2')) 
+```
+```{r}
+ggplot(diamonds, aes(x=clarity,y=price))+
+  geom_violin()+
+  labs(x="Clarity", y="Price")
+```
+
+```{r}
+ggplot(diamonds, aes(x=color, y=price))+
+  geom_violin()+
+  labs(x="Color",y="Price")
+```
+
+```{r}
+ggplot(diamonds, aes(x=cut, y=price))+
+  geom_violin()+
+  labs(x="Cut",y="Price")
+```
+```{r}
+ggplot(diamonds, aes(x=clarity, y=carat))+
+  geom_violin()+
+  labs(x="Clarity",y="Carat")
+```
+
+```{r}
+ggplot(diamonds, aes(x=color, y=carat))+
+  geom_violin()+
+  labs(x="Color",y="Carat")
+```
+```{r}
+ggplot(diamonds, aes(x=cut, y=carat))+
+  geom_violin()+
+  labs(x="Cut",y="Carat")
+```
+
+
+
+
+
+
+```{r}
+ggplot(diamonds, aes(x=clarity, y=price, fill=color))+
+  geom_boxplot() +
+  labs(title="Color and Clarity vs Price")
+```
+```{r}
+ggplot(diamonds, aes(x=carat, y=price, color=color))+
+  geom_point() +
+  labs(title="Color and carat vs Price")
+```
+```{r}
+ggplot(diamonds, aes(x=carat, y=price, color=cut))+
+  geom_point() +
+  labs(title="Carat and cut vs Price")
+```
+```{r}
+ggplot(diamonds, aes(x=clarity, y=price, fill=cut))+
+  geom_boxplot() +
+  labs(title="Color and cut vs Price")
+```
+```{r}
+ggplot(diamonds,aes(x = color, fill=price))+
+  geom_bar()+
+  labs(x="Color", y=)
+```
+```{r}
+ggplot(data = filter(diamonds, diamonds$clarity == "VS1")) + 
+  geom_point(data= diamonds, aes(x = carat, y = price, color = clarity))
+```
+
+```{r}
+# Plotting the relationship between 'cut' and 'price'
+ggplot(diamonds, aes(x = cut, y = price)) +
+  geom_boxplot() +
+  labs(title = "Diamond Price by Cut Quality",
+       x = "Cut Quality",
+       y = "Price (USD)") +
+  theme_minimal()
+```
+## Distribution of clarity and color by cut
+The following plot shows the distribution of clarity and color by cut.
+
+```{r}
+# Plotting the distribution of clarity and color by cut
+ggplot(diamonds, aes(x = clarity, fill = cut)) +
+  geom_bar(position = "stack") +
+  labs(title = "Distribution of Clarity by Cut", x = "Clarity", y = "Count") +
+  theme_minimal()
+```
+```{r}
+# Plotting the distribution of clarity and color by cut
+ggplot(diamonds, aes(x = color, fill = cut)) +
+  geom_bar(position = "stack") +
+  labs(title = "Distribution of Color by Cut", x = "Color", y = "Count") 
+```
+
+## Number of diamonds by cut
+The following plot shows the number of diamonds by cut.
+
+```{r}
+# Plotting the number of diamonds by cut
+diamonds %>% 
+  count(cut) %>% 
+  ggplot(aes(x = cut, y = n, fill = cut)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Number of Diamonds by Cut", x = "Cut", y = "Count") +
+  theme_minimal()
+```
+
+## Relationship between price and carat by cut
+The following plot shows the relationship between price and carat by cut.
+
+```{r}
+# Plotting the relationship between price and carat by cut
+ggplot(diamonds, aes(x = carat, y = price, color = cut)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = lm, se = FALSE) +
+  labs(title = "Price vs. Carat by Cut", x = "Carat", y = "Price") +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(diamonds,aes(x=carat))+ geom_density()+ labs(x="Carat",y="Density",title="Density of Carat")
+```
+```{r}
+ggplot2::ggplot(diamonds, aes(x=carat,y=price))+
+  geom_point(alpha=0.2)+
+  geom_smooth(se=FALSE)+
+  labs(x="Carat Size", y="Price", title="Effect of Carat Size on Price")
+```
+
+```{r}
+ggplot(diamonds, aes(x=color, y=carat))+
+  geom_boxplot(fill="Blue")+
+  labs(x="Color", y="Carat", title="Dist of Carat by Color")
+```
+
+```{r}
+ggplot(diamonds, aes(x=carat, y=price, color=color)) + 
+geom_point() + 
+geom_smooth(se=FALSE)+
+labs(x="Carat", y="Price", title="Effect of Carat Size and Diamond Color on Price", color = "Color") 
+```
+
+```{r}
+ggplot(diamonds, aes(x=cut, y=carat))+
+  geom_boxplot(fill="Blue")+
+  labs(x="Cut", y="Carat", title="Dist of Carat by Cut")
+```
+```{r}
+ggplot(diamonds, aes(x=carat, y=price, color=cut)) + 
+geom_point() + 
+geom_smooth(se=FALSE)+
+labs(x="Carat", y="Price", title="Effect of Carat Size and Diamond Cut on Price", color = "Cut") 
+```
+
+```{r}
+ggplot(diamonds, aes(x=clarity, y=carat))+
+  geom_boxplot(fill="Blue")+
+  labs(x="Clarity", y="Carat", title="Dist of Carat by Clarity")
+```
+
+```{r}
+ggplot(diamonds, aes(x=carat, y=price, color=clarity)) + 
+geom_point() + 
+geom_smooth(se=FALSE)+
+labs(x="Carat", y="Price", title="Effect of Carat Size and Diamond Clarity on Price", color = "Clarity") 
+```
+
+
+
+
+
+
+
+
+
