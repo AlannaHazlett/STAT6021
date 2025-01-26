@@ -1,0 +1,233 @@
+---
+title: "M11Guided"
+author: "Alanna Hazlett"
+date: "2024-04-14"
+output:
+  pdf_document: default
+  html_document: default
+---
+We will focus on predicting the likelihood of developing coronary heart disease (chd) based on the following predictors: age, systolic blood pressure (sdp), diastolic blood pressure (dbp), number of cigarettes smoked per day (cigs), and behavior type (dibep)- A for aggressive and B for passive.\
+```{r,include=FALSE}
+library(tidyverse)
+library(faraway)
+library(gridExtra)
+```
+
+```{r}
+Data<-wcgs
+set.seed(6021)
+sample<-sample.int(nrow(Data), floor(.50*nrow(Data)), replace = F)
+##training data frame
+train<-Data[sample, ] 
+##test data frame
+test<-Data[-sample, ] 
+```
+
+# Problem 1\
+Before fitting a model, create some data visualizations to explore the relationship between these predictors and whether a middle-aged male develops coronary heart disease.
+
+chd is the binary (categorical) response variable.\
+Categorical predictors: behavior type (dibep)
+```{r}
+#check dummy coding for dibep
+contrasts(train$dibep) 
+ggplot2::ggplot(train, aes(x=dibep, fill=chd))+
+  geom_bar(position = "fill")+
+  labs(x="Behavior Type", y="Proportion",
+       title="Proportion of Coronary Heart Disease by Behavior Type")
+```
+\
+Proportion of presence of coronary heart disease is higher proportion in behavior type A.\
+Quantiative Predictors: age, systolic (sdp), diastolic (dbp), number of cigarettes per day (cigs).
+```{r}
+#Box plots
+bp1<-ggplot(train, aes(x=chd, y=age))+
+  geom_boxplot()+
+  labs(x="CHD", y="Age", title="Age by CHD")
+bp2<-ggplot(train, aes(x=chd, y=sdp))+
+  geom_boxplot()+
+  labs(x="CHD", y="Systolic", title="Systolic BP by CHD")
+bp3<-ggplot(train, aes(x=chd, y=dbp))+
+  geom_boxplot()+
+  labs(x="CHD", y="Diastolic", title="Diastolic BP by CHD")
+bp4<-ggplot(train, aes(x=chd, y=cigs))+
+  geom_boxplot()+
+  labs(x="CHD", y="Cigarettes", title="Cigs by CHD")
+##produce the 4 boxplots in a 2 by 2 matrix
+grid.arrange(bp1, bp2, bp3, bp4, ncol = 2, nrow = 2)
+
+#Density plots
+dp1<-ggplot2::ggplot(train,aes(x=age, color=chd))+
+  geom_density()+
+  labs(title="Age by Coronary Heart Disease")
+dp2<-ggplot2::ggplot(train,aes(x=sdp, color=chd))+
+  geom_density()+
+  labs(title="Systolic by Coronary Heart Disease")
+dp3<-ggplot2::ggplot(train,aes(x=dbp, color=chd))+
+  geom_density()+
+  labs(title="Diastolic by Coronary Heart Disease")
+dp4<-ggplot2::ggplot(train,aes(x=cigs, color=chd))+
+  geom_density()+
+  labs(title="Number of Cigarettes by CHD")
+gridExtra::grid.arrange(dp1, dp2, dp3, dp4, ncol = 2, nrow = 2)
+```
+**Box plot conclusions**:\
+Professor's note: People who developed heart disease tend to be older, have higher blood pressures, as well as smoke more cigarettes. There is high variability in a lot of these predictors for each group (those without heart disease and those with heart disease). The number of cigarettes smoked appears to be the biggest factor in whether one develops heart disease as their distributions are most different. Among those with no heart disease, 50% of them did not smoke. Among those with heart disease, 25% of them did not smoke. There is a lot of overlap in the boxplots for the blood pressure variables, so blood pressure may not differentiate between those who develop heart disease from those who did not\
+**Density plot conclusions**:\
+UL: After age 45 more people have coronary heart disease than not.\
+UR: Peak density for systolic for people with coronary heart disease is about 10mmHg than those without.\
+LL: Peak density for for Diastolic people with coronary heart disease is the same as those without, however a higher proportion of those with CHD are present in the range 95-113mmHg.\
+LR: The proportion of of those who smoke cigarettes is higher for those with CHD across almost all number of cigarettes in a day.\
+Professor's note: The density plot of age for those without heart disease is right skewed; a higher proportion of those without heart disease are younger (below 45). The distribution of age for those with heart disease tend is a more symmetric, with a peak around 50. Age could be a good predictor for whether someone develops heart disease. The density plots of the blood pressure variables are similar for those with heart disease and for those without heart disease. The blood pressure variables are less likely to be good predictors for whether someone develops heart disease. A much larger proportion of those who did not develop heart disease do not smoke, compared to those who did develop heart disease.
+
+```{r}
+mytab<-table(train$dibep, train$chd)
+mytab
+```
+```{r}
+round(prop.table(mytab),4)
+```
+
+# Problem 2
+
+Use R to fit the logistic regression model using all the predictors listed above, and write the estimated logistic regression equation.\
+```{r}
+result<-glm(chd~age+sdp+dbp+cigs+dibep, family=binomial, data=train)
+summary(result)
+```
+Our regression mode is: $log(\frac { \hat \pi}{1- \hat \pi})=-8.309+0.060X_{age}+0.015x_{sdp}+0.012x_{dbp}+0.021x_{cig}-0.53I_{dibep}$\
+Where I is 0 for dibep behavior type A and 1 for behavior type B.\
+
+# Problem 3
+
+Interpret the estimated coefficient for cigs in context.\
+Estimated coefficient for cigs is 0.021.\
+Estimated log(odds) of having coronary heart disease increases by 0.021 for each additional cigarette smoked per day (on average), when controlling for the other predictors.\
+Estimated odds is multiplied by e^0.021 = 1.021 for each additional cigarette smoked per day (on average), when controlling the other predictors. 
+
+# Problem 4
+
+Interpret the estimated coefficient for dibep in context.\
+Estimated coefficient for dibep is -0.53. This indicates the change from behavior type A to behavior type B.\
+The estimated log(odds) is 0.53 lower for behavior type B than behavior type A, when controlling the other predictors.\
+The estimated odds for behavior type B is e^0.53 = 0.59 times less the odds of type A, when controlling for the other predictors.\
+
+# Problem 5
+
+What are the estimated odds of developing heart disease for an adult male who is 45 years old, has a systolic blood pressure of 110 mm Hg, diastolic blood pressure of 70 mm Hg, does not smoke, and has type B personality? What is this person’s corresponding probability of developing heart disease?\
+*Dataset is comprised of all males*\
+*Something is off about my hand calculations, utilize the code driven answer, which was provided by professor*
+
+$$\frac { \hat \pi}{1- \hat \pi}=e^{-8.309+0.060X_{age}+0.015x_{sdp}+0.012x_{dbp}+0.021x_{cig}-0.053I_{dibep}}$$
+$$\frac { \hat \pi}{1- \hat \pi}=e^{-8.309+0.060(45)+0.015(110)+0.012(70)+0.021(0)-0.053(1)}$$
+$$\frac { \hat \pi}{1- \hat \pi}=e^{-3.172}=0.0419$$
+$$\hat \pi=\frac {e^{-8.309+0.060(45)+0.015(110)+0.012(70)+0.021(0)-0.053(1)}}{1+e^{-8.309+0.060(45)+0.015(110)+0.012(70)+0.021(0)-0.053(1)}} =\ \frac {0.0419}{1+0.0419}=0.0402$$
+
+
+Could have completed using R instead of by hand:
+```{r}
+##make prediction for log odds
+newdata<-data.frame(age=45, sdp=110, dbp=70, cigs=0, dibep="B")
+predict(result,newdata)
+```
+```{r}
+##convert to odds
+odds<-exp(predict(result,newdata))
+odds
+```
+```{r}
+##convert odds to probability
+prob<-odds/(1+odds)
+prob
+```
+The estimated odds of developing heart disease for this male is 0.02675027. The corresponding probability is 0.02605333.
+\
+
+# Problem 6
+
+Carry out the relevant hypothesis test to **check if this logistic regression model with five predictors is useful** in estimating the odds of heart disease. Clearly state the null and alternative hypotheses, test statistic, and conclusion in context.\
+*Calling for us to use the Likelihood Ratio Test (LRT)*\
+$$H_{0}: \beta_{1} = \beta_{2} = \beta_{3} = \beta_{4} = \beta_{5} = 0$$
+$$H_{a}:at\ least\ one\ coefficient \neq 0$$
+Looking back at summary(result) we can find the null deviance, the deviance of the intercept only model, and the residual deviance, the deviance of the model. We utilize these to make our test statistic. We then compare this test statistic to a chi-squared distribution $\chi_{df}^2$ where df represents the number of parameters you will drop to get the reduced model.\
+$$\Delta G^2 = D(R)-D(F)$$
+$$\Delta G^2 = 893.04-837.55=55.49$$
+Could have found using R instead of by hand:
+```{r}
+deltaG2<-result$null.deviance-result$deviance
+deltaG2
+```
+```{r}
+#p-value for chi squared dist.
+1-pchisq(55.49,5)
+#critical value
+qchisq(0.95,5)
+```
+Our p-value is very very small and our test statistic is larger than our critical value. We reject the null hypothesis, our data supports the alternative hypothesis. This indicates that our model is indeed useful.\
+
+# Problem 7
+
+Suppose a co-worker of yours suggests fitting a logistic regression model without the two blood pressure variables. Carry out the relevant hypothesis test to check if this model without the blood pressure variables should be chosen over the previous model with all four predictors.\
+$$H_{0}:\beta_{2} = \beta_{3} = 0$$
+$$H_{a}: at\ least\ one\ coefficient\ \neq 0$$
+```{r}
+#Create reduced model
+reduced<-glm(chd~age+cigs+dibep, family=binomial, data=train)
+summary(reduced)
+```
+*Compared the residual deviance from reduced and full models*\
+$$\Delta G^2 =  D(R)-D(F) = 851.25-837.55=13.7$$
+Could have calculated by R instead of by hand:
+```{r}
+deltaG2_partial<-reduced$deviance-result$deviance
+deltaG2_partial
+```
+```{r}
+#p-value for chi squared dist.
+1-pchisq(13.7,2)
+#critical value
+qchisq(0.95,2)
+```
+Our p-value is very small and our test statistic is larger than our critical value. We reject the null hypothesis, our data supports the alternative hypothesis. This indicates that we should go with the full model including the blood pressure predictors.\
+
+
+# Problem 8
+
+Based on the Wald test, is diastolic blood pressure a significant predictor of heart disease, when the other predictors are already in the model?\
+$H_{0}: \beta_{3} = 0$              $H_{a}: \beta_{3} \neq 0$\
+Z statistic: 
+$$Z=\frac {\hat \beta_{j}-value\ in\ null\ hypothesis}{se(\hat \beta_{j})} = \frac {0.012026-0}{0.014345} = 0.8383$$
+
+*This test statistic is compared to a normal distribution with mean 0 and variance 1. N(0,1)*
+```{r}
+#two tailed test
+#p-value
+2*(1-pnorm(abs(0.8383)))
+#critical value
+qnorm(0.975)
+```
+*We could have also just pulled the Z statistic and the p-value from summary(result) above*\
+Our p-value is large enough that we reject the null hypothesis that the coefficient for diastolic blood pressure is zero, our data supports the alternative hypothesis that we should drop diastolic blood pressure from the model.\
+**CHECK THIS ANSWER**
+high p-value means coefficient is insignificant
+# Problem 9
+
+Based on all the analysis performed, which of these predictors would you use in your logistic regression model?\
+We should go with chd~age+sdp+cigs+dibep.
+
+
+Some in class notes to determine if extra code line needed:
+```{r}
+#Some people have to use the commented out code, generally because they have an old version of R 
+#RNGkind(sample.kind = "Rejection")
+set.seed(1)
+sample.int(100,5)
+```
+
+
+
+
+
+
+
+
