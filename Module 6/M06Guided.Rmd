@@ -1,0 +1,161 @@
+---
+title: "M06Guided"
+author: "Alanna Hazlett"
+date: "2024-03-08"
+output: html_document
+---
+```{r, include=FALSE}
+library(tidyverse)
+library(GGally)
+```
+y: Games won (14-game season)\
+x1: Rushing yards (season)\
+x2: Passing yards (season)\
+x3: Punting average (yards/punt)\
+x4: Field goal percentage (FGs made/FGs attempted)\
+x5: Turnover differential (turnovers acquired - turnovers lost)\
+x6: Penalty yards (season)\
+x7: Percent rushing (rushing plays/total plays)\
+x8: Opponents’ rushing yards (season)\
+x9: Opponents’ passing yards (season)\
+
+# Problem 1 
+
+Create a scatterplot matrix and find the correlation between all pairs of variables for this data set.
+```{r}
+Data<-read.table("nfl.txt", header=TRUE, sep="")
+GGally::ggpairs(Data)
+#To show separately
+#pairs(Data, lower.panel = NULL, main="Scatterplot of Quantitative Variables")
+#round(cor(Data),3)
+```
+**(a)**\
+Which predictors appear to be linearly related to the number of wins?\
+I decided any with correlation magnitude > 0.5.\
+* x1\
+* x5\
+* x7\
+* x8\
+* Professor included x2
+Which predictors do not appear to have a linear relationship with the number of wins?\
+* x2\
+* x3\
+* x4\
+* x6\
+* x9\ 
+\
+**(b)**\
+Do you notice if any of the predictors are highly correlated with one another? If so, which ones?\
+* x1 and x5\
+* x1 and x7\
+* x1 and x8\
+* x5 and x7\
+* x7 and x8\
+**(c)**\
+To start I would choose variables that appear to have a linear relationship to the number of wins, which is my answer to part a. These are x1, x5, x7, and x8. Since x1 appears to be highly correlated to the rest of these (as noted in part b) I suspect that I do not need to include it, which leaves me x5, x7, and x8.\
+Professor also included x2.
+
+# Problem 2
+
+Regardless of your answer to the previous question, fit a multiple regression model for the number of games won (y) against the following three predictors: the team’s passing yardage (x2), the percentage of rushing plays (x7), and the opponents’ yards rushing (x8). Write the estimated regression equation.\
+```{r}
+result<-lm(y~x2+x7+x8, data=Data)
+summary(result)
+```
+The estimated regression equation is: $$ \hat y = \hat \beta_{0} + \hat \beta_{1}x_{1} + \hat \beta_{2}x_{2} + \hat \beta_{3}x_{3}$$
+$$\hat y = -1.808372 + 0.003598 x_{2} + 0.193960 x_{7} + -0.004816 x_{8}$$
+\
+
+# Problem 3 
+
+Interpret the estimated coefficient for the predictor x7 in context.\
+The value is 0.193960. This means that when the percentage of rushing plays increases by one unit (one percentage), that the predicted number of wins will increase by 0.19 units, when the other predictor variables are held constant. 
+
+# Problem 4
+
+A team with x2 = 2000 yards, x7 = 48 percent, and x8 = 2350 yards would like to estimate the number of games it would win. Also provide a relevant interval for this estimate with 95% confidence.\
+```{r}
+newdata<-data.frame(x2=2000, x7=48, x8=2350)
+predict(result, newdata, level=0.95, interval="prediction")
+```
+# Problem 5
+
+Using the output for the multiple linear regression model from part 2, answer the following question from a client: “Is this regression model useful in predicting the number of wins during the 1976 season?” Be sure to write the null and alternative hypotheses, state the value of the test statistic, state the p-value, and state a relevant conclusion. What is the critical value associated with this hypothesis test? Perform the test at 0.05 significance level.\
+
+$$H_{0}: \hat \beta_{2} = \hat \beta_{7} = \hat \beta_{8} = 0\\
+H_{a}: at\ least\ one\ coefficient\ in\ H_{0} \neq 0$$
+
+```{r}
+#qf for F test
+#confidence level, p-1, n-p
+qf(0.95,4-1,28-4)
+```
+test statistic (F Statistic): 29.44\
+p-value: 3.273e-08\
+The p-value is less than our significance level of 0.05 and the F statistic is larger than our critical value. We reject the null hypothesis. The data support the claim that our model with the three predictors is useful in predicting the number of wins.
+
+# Problem 6
+Report the value of the t statistic for the predictor x7. What is the relevant conclusion from this t statistic? Also report the critical value for this hypothesis test. Perform the test at 0.05 significance level.\
+**For the percentage of rushing plays (x7):**\
+The test statistic is 2.198\
+The p-value is 0.037815\
+```{r}
+qt(1-(0.05/2),28-4)
+```
+The p-value < the significance level and the test statistic is > the critical value, this means that we reject the null hypothesis of beta1 equaling 0, our data supports the alternative hypothesis. This indicates that we should keep this predictor in the MLR model.
+
+# Problem 7
+
+Check the regression assumptions by creating the diagnostic plots. Comment on these plots.
+```{r}
+Data2<-data.frame(Data$x2,Data$x7,Data$x8,Data$y)
+GGally::ggpairs(Data2)
+par(mfrow=c(2,2))
+plot(result)
+```
+\
+* Assumption 1: Appears met, the errors have a mean of 0 for each value of the predictor(s).\
+* Assumption 2: Appears met, the errors have constant variance for each value of predictor(s).\
+* Assumption 4: Appears met, the errors are normally distributed.
+
+# Problem 8
+
+Consider adding another predictor, x1, the team’s rushing yards for the season, to the model. Interpret the results of the t test for the coefficient of this predictor. A classmate says: “Since the result of the t test is insignificant, the team’s rushing yards for the season is not linearly related to the number of wins.” Do you agree with your classmate’s statement?\
+```{r}
+result2<-lm(y~x1+x2+x7+x8, data=Data)
+summary(result2)
+```
+$$H_{0}: \hat \beta_{x1} = 0\quad \quad  H_{a}: \hat \beta_{x1} \neq 0$$
+**For x1: Rushing yards (season)**\
+The test statistic is 0.549\
+The p-value is 0.58862 \
+```{r}
+qt(1-(0.05/2),28-4)
+```
+The p-value > the significance level and the test statistic is < the critical value, this means that we fail to reject the null hypothesis of beta-x1 equaling 0. This indicates that we should drop this predictor in the MLR model.
+* I do not agree with my classmate's statement. Based on our original scatterplot matrix we can see a linear relationship between x1 and y. The reason that this variable should be dropped is actually because it displays multicollinearity with the other variables in our model. 
+
+Professor's response:\
+The t test for the coefficient of x1 is insignificant. We can remove this predictor and leave the others in the model. OR This predictor is insignificant in the presence of the other predictors. Disagree with the classmate. To address the classmate’s statement, we need to fit a simple linear regression with x1, the team’s rushing yards, as the only predictor. The MLR model is not meant to address the classmate’s statement. If you tried to fit a SLR with x1 as the only predictor and create a scatterplot of the number of wins with x1, you will see that x1 is a significant predictor and is linearly related to the number of wins.\
+```{r}
+result3<-lm(y~x1, data=Data)
+summary(result3)
+```
+```{r}
+plot(Data$y~Data$x1)
+abline(result3)
+```
+```{r}
+cor(cbind(Data$x1,Data$x2,Data$x7,Data$x8))
+```
+Notice on its own x1 is linearly related to the response. It is not needed in a model with
+x2, x7, x8 as it doesn’t improve the predictions significantly as it is highly correlated with a
+number of other predictors. So x1 doesn’t provide much additional insight to the prediction
+when the others are already in the model.
+
+
+
+
+
+
+

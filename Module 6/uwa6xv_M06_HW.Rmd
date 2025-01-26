@@ -1,0 +1,85 @@
+---
+title: "uwa6xv_M06_HW"
+author: "Alanna Hazlett"
+date: "2024-03-12"
+output:
+  pdf_document: default
+  html_document: default
+---
+# Problem 1
+
+```{r}
+library(datasets)
+library(GGally)
+Data<-swiss
+```
+**(a)**\
+Create a scatterplot matrix and find the correlation between all pairs of variables
+for this data set. 
+```{r}
+ggpairs(Data)
+```
+\
+**(i)**\
+Which predictors appear to be linearly related to the fertility measure?\
+* Examination\
+* Education\
+**(ii)**\
+Do you notice if any of the predictors are highly correlated with one another? If so, which ones?\
+* Examination and Agriculture\
+* Education and Agriculture\
+* Education and Examination\
+* Catholic and Examination\
+**(b)**\
+Fit a multiple linear regression with the fertility measure as the response variable and all the other variables as predictors. Use the summary() function to obtain the estimated coefficients and results from the various hypothesis tests for this model.\
+```{r}
+result<-lm(Fertility~., data=Data)
+summary(result)
+```
+**(i)**\
+What is being tested by the ANOVA F statistic? What is the relevant conclusion in context?\
+$$H_{0}: \hat \beta_{0} = \hat \beta_{1} = \hat \beta_{2} = \hat \beta_{3} = \hat \beta_{4} = \hat \beta_{5} = 0\\
+H_{a}: at\ least\ one\ coefficient\ in\ H_{0} \neq 0$$
+The F statistic helps us to determine if the MLR model is useful. Here our F statistic is 19.76 on 5 and 41 degrees of freedom and we will compare that to a F (p-1,n-p) distribution critical value.
+```{r}
+qf(0.95,5,41)
+```
+Our F statistic is greater than our critical value (our p-value is less than our significance level), so we reject the null hypothesis. The data support the claim that our model with the five predictors is useful in predicting the fertility.\
+**(ii)**\
+Look at the numerical values of the estimated slopes as well as their p-values. Do they seem to agree with or contradict with what you had written in your answer to part 1a? Briefly explain what do you think is going on here.\
+If we conducted t tests for each predictor variable the null hypothesis would be that the beta for that predictor would equal zero and the alternative would be that it would not equal zero. We can see that none of the predictor variables have a beta value of zero. This is in agreeance with what I found in part i of part b.\
+Agriculture, Education, Catholic, and Infant Mortality all have p-values that are less than the level of significance of 0.05. This indicates that for these variables we reject the null hypothesis and the data supports keeping these variables in the MLR model. For Examination, the p-value is greater than our significance level, so we would fail to reject the null hypothesis and this supports dropping this variable from our MLR model.\
+This is contradictory to our statement from part i in part b.\ 
+The explanation for this is multicollinearity. The Examination variable has high correlation values to other predictors, Education, Catholic, and Agriculture. 
+
+# Problem 2
+
+**(a)**\
+What is the value of the estimated coefficient of the variable Stay? Write a sentence that interprets this value.\
+The estimated coefficient of the variable Stay is 0.237209. This denotes the change in the predicted response, Infection Risk, per unit change in the length of stay, when the other predictors are held constant. For each unit of increase in length of stay, the infection risk increases by 0.24%, while the other predictors are constant.\
+**(b)**\
+Derive the test statistic, p-value, and critical value for the variable Age. What null and alternative hypotheses are being evaluated with this test statistic? What conclusion should we make about the variable Age?\
+The test statistic is:
+$$ t = \frac{\hat \beta_{age}}{se(\hat \beta_{age})}$$
+$$ t = \frac {-0.014071}{0.022708} = -0.619649$$
+The p-value is:
+```{r}
+2*pt(-0.619649, df=113-5)
+```
+The critical value is:
+```{r}
+qt(0.95, 113-5)
+```
+$$ H_{0}: \hat \beta_{age} = 0$$
+$$ H_{a}: \hat \beta_{age} \neq 0 $$
+Our test statistic is less than our critical value (in magnitude) and our p-value is greater than our significance level, so we fail to reject the null hypothesis. The data supports dropping this predictor, age, from the MLR model.\ 
+\
+**(c)**\
+A classmate states: “The variable Age is not linearly related to the predicted infection risk.” Do you agree with your classmate’s statement? Briefly explain.\
+We can not distinctively determine this based on our t test alone. Just because the data supports dropping this predictor from the MLR model does not mean that it is not linearly related. It could display multicollinearity with the other predictor variables. In order to determine if age is linearly related to our response variable, infection risk, we would need to graph a scatterplot of infection risk against age and evaluate it. 
+
+
+
+
+
+
