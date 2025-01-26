@@ -1,0 +1,151 @@
+---
+title: "M08Guided"
+author: "Alanna Hazlett"
+date: "2024-03-25"
+output:
+  pdf_document: default
+  html_document: default
+---
+peguins dataset from palmer penguins, we focus on exploring the relationship between body mass (y) and bill.
+depth (x1) of three species of penguins.
+```{r, include=FALSE}
+library(tidyverse)
+library(palmerpenguins)
+library(multcomp)
+```
+# Problem 1
+
+Create a scatterplot of the body mass against the bill depth of the penguins. How would you describe the relationship between these two variables?
+```{r}
+Data<-penguins
+ggplot(Data, aes(x=bill_depth_mm,y=body_mass_g))+
+  geom_point()+
+  geom_smooth(method=lm, se=FALSE)+
+  labs(x="Bill Depth (mm)", y="Body Weight (g)", title = "Body Weight against Bill Depth")
+```
+\
+Despite our estimated regression line showing a negative relationship, this looks like two distinct groupings of data that have positive linear relationships.\
+
+# Problem 2 
+
+Create the same scatterplot but now with different colored plots for each species. Also be sure to overlay separate regression lines for each species. How would you now describe the relationship between the variables?
+```{r}
+ggplot(Data, aes(x=bill_depth_mm,y=body_mass_g, color=species))+
+  geom_point()+
+  geom_smooth(method=lm, se=FALSE)+
+  labs(x="Bill Depth (mm)", y="Body Weight (g)", title = "Body Weight against Bill Depth")
+```
+It does appear we have multiple positively linear relationships, however we have 3 not 2.\
+Professor's Note: We note that the relationship between bill depth and body mass appears to be almost identical for Adelie and Chinstrap penguins, since their regression lines are parallel (and in fact overlap, indicating the intercepts are the same). The slope of the regression line for Gentoo penguins is a bit steeper, indicating a slightly larger increase in body mass for each unit change in bill depth, on average.
+
+# Problem 3
+
+Create a regression with interaction between bill depth and species, where I1 and I2 are indicator variables, where I1 = 1 for Chinstrap penguins and 0 otherwise, and I2 = 1 for Gentoo penguins and 0 otherwise.\
+Write the estimated regression equation.\
+```{r}
+#Check that the predictor variable is in the correct order
+contrasts(Data$species)
+result.inter<-lm(body_mass_g ~ bill_depth_mm*species,data=Data)
+summary(result.inter)
+```
+Something to note: In scatterplot with separate regression lines for each class of species, we can see that Adelie and Chinstrap are somewhat overlapping, which might suggest that both the slope and intercept for these two classes could be the same. In our summary report here, looking at Chinstrap coefficients (beta2 and beta4) the p-values for these are insignificant, so the intercept and the slope are the same for Chinstrap and Adelie. We could theoretically combine these into one large group, if it made sense contextually. 
+
+The model is:
+$$ y = \beta_{0} + \beta_{1} x_{1} + \beta_{2} I_{1} + \beta_{3} I_{2} + \beta_{4} x_{1} I_{1} + \beta_{5} x_{1} I_{2} + \in$$
+The estimated regression equation is:
+$$ \hat y = -283.28 + 217.15 x_{1} + 247.06 I_{1} + -175.71 I_{2} + -12.53 x_{1} I_{1} + 152.29 x_{1} I_{2} $$
+where I1 = 1 for Chinstrap penguins and 0 otherwise, and I2 = 1 for Gentoo penguins and 0 otherwise.
+Professor's Note: Do note that the estimated coefficients for β2 and β4 are insignificant, which indicates that the intercepts and slopes for Adelie and Chinstrap penguins are not significantly different.
+
+# Problem 4
+
+Carry out the relevant hypothesis test to see if the interaction terms can be dropped. What is the conclusion?
+$$H_{0}:\beta_{4} = \beta_{5} = 0$$   
+$$H_{a}: at\ least\ one\ coefficient \neq 0$$
+
+```{r}
+result.reduced<-lm(body_mass_g~bill_depth_mm+species,data=Data)
+anova(result.inter,result.reduced)
+```
+The general linear F test is significant (p-value < 0.05), so we reject the null hypothesis, we can not drop our interactive terms, and need to use the full model with the interactive effects. \
+Professor's Note: The relationship between bill depth and body mass is not the same for all three species (not surprising given the different slope for Gentoo penguins).\
+
+# Problem 5
+
+Based on your answer in part 4, write out the estimated regression equations relating body mass and bill depth, for each species of the penguins.\
+The regression equations are:\
+For Adelie:\
+$$E\left\{Y\right\} = -283.28 + 217.15 x_{1} + 247.06\ (0) + -175.71\ (0) + -12.53x_{1}\ (0) + 152.29x_{1}\ (0)$$
+$$ E\left\{Y\right\} = -283.28 + 217.15x_{1}$$
+For Chinstrap:\
+$$E\left\{ Y\right\} = -283.28 + 217.15 x_{1} + 247.06\ (1) + -175.71\ (0) + -12.53x_{1}\ (1) + 152.29x_{1}\ (0)$$
+$$ E\left\{ Y\right\} = -36.22 + 204.62x_{1}$$
+\
+For Gentoo:\
+$$E\left\{ Y\right\} = -283.28 + 217.15 x_{1} + 247.06\ (0) + -175.71\ (1) + -12.53x_{1}\ (0) + 152.29x_{1}\ (1)$$
+$$E \left\{ Y \right\}= -458.99 + 369.44x_{1}$$
+
+# Problem 6
+
+Assess if the regression assumptions are met, for the model you will recommend to use (based on part 4).
+```{r}
+par(mfrow=c(2,2))
+plot(result.inter)
+```
+\
+We see that the residuals are evenly scattered acorss the horizontal axis, so the mean of the residuals is 0. We also note the vertical spread of the residuals is fairly constant, so the constant variance assumption is met.
+Professor's Note: Next, we take a look at the Box Cox plot to confirm our observation that the variance is constant and hence we do not need to transform the respones variable. Since the value of 1 lies in the CI, we do not need to transform the response variable.
+```{r}
+boxcox(result.inter)
+```
+We can also check acf to see if assumption 3 (Errors are independent) is met. 
+```{r}
+acf(result.inter$residuals, main="ACF Plot of Residuals")
+```
+We notice that the lagged versions of the observations are outside of our critical value, so they appear significant. This would indicate that the observations are somehow correlated and are not independent of eachother. We happen to know that this is a random sample, so why does it appear this way? When we look at our dataset we see that it is sorted by species, which has a large role in body mass, so dataset seems sorted by body mass. This grouping causes the observations to appear not random and in fact correlated. We can test again with some code that would randomize our dataset and rerun the acf plot.\
+```{r}
+df2 <- Data[sample(nrow(Data)),]
+result.inter2<-lm(body_mass_g ~ bill_depth_mm*species,data=df2)
+acf(result.inter2$residuals, main="ACF Plot of Residuals after Dataframe Shuffle")
+```
+\
+We can see that the errors are independent for our dataset after we have shuffled our dataframe. The correlation of body mass is taken out after dealing with the grouping of species.  
+
+# Problem 7
+
+### My answer is wrong
+
+Briefly explain if we can conduct pairwise comparisons for the difference in mean body mass among all pairs of species for given values bill depth:\
+(a) Adelie and Chinstrap\
+(b) Adelie and Gentoo\
+(c) Chrinstrap and Gentoo\
+If we are able to, conduct Tukey’s multiple comparisons and contextually interpret the results of these hypothesis tests.\
+Yes, we can.\
+```{r}
+pairwise<-multcomp::glht(result.inter,linfct=mcp(species="Tukey"))
+summary(pairwise)
+```
+Test Statistic:\
+$$t = \frac{estimate}{se(estimate)}$$
+Critical Value:\
+```{r}
+qt(1-0.05/(2*3), 344-6)
+```
+All 3 t statistics < critical value, so there is a not a significant difference in body mass for the species, when controlling bill depth. 
+
+### Correct answer: 
+
+Since our partial F test informs us that we should use the model with interactions between species and bill length, the relationship between bill length and body mass differs across species. This was noted by the different slopes in the scatterplot in part 2. To carry out Tukey’s multiple comparisons, we need the slopes to be equal (or no significant interactions), as multiple comparisons assume the differences in body mass between species is the same as long as bill depth is controlled for.
+
+
+
+
+
+
+
+
+
+
+
+
+
