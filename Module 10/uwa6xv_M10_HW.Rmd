@@ -1,0 +1,124 @@
+---
+title: "uwa6xv_M10_HW"
+author: "Alanna Hazlett"
+date: "2024-04-09"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Problem 1 
+
+In Homework 7, you found that the model with just three predictors: Education, Catholic, and Infant Mortality was preferred to a model with all the predictors. Fit the model with the three predictors, and answer the following questions.\
+
+```{r}
+library(tidyverse)
+Data<-swiss
+result<-lm(Fertility~Education+Catholic+Infant.Mortality,data=Data)
+```
+
+**(a)**\
+Are there any observations that are outlying? Be sure to show your work and explain how you arrived at your answer.
+
+```{r}
+#residuals
+round(sort(abs(result$res)),4)
+#studentized residuals
+round(sort(abs(rstandard(result))),4)
+#externally studentized residuals
+round(sort(abs(rstudent(result))),4)
+```
+
+* Based on the residuals it appears that potentially  Neuveville, Franches-Mnt, Moutier, Rive Gauche, and Sierre are outliers, as their values are larger than the other observations. There is about a 2 unit increase from Moudon to NeuThere. There is stronger evidentce still that Rive Gauche and Sierre are outliers as they are additional 2 units larger than Moutier. However the residuals are difficult to determine what is considered a large enough value to be an outlier as their units reflect the response variable. \
+* Based on the studentized residuals it appears that Rive Gauche and Sierre are outliers, as their studentized residuals are greater than 2. This is larger than the next closest Moutier of 1.74. This indicates that these observations are greater than 2 standard deviations their predicted response is from their actual response.\
+* Based on the externally studentized residuals it appears that while Rive Gauche and Sierre are less than 3, our guideline for this statistic, they are notably larger than the other observations.\
+\
+In conclusion from these three statistics it appears that Rive Gauce and Sierre are both outliers.\ 
+\
+**(b)**\
+Are there any observations that have high leverage? Be sure to show your work and explain how you arrived at your answer.\
+```{r}
+round(sort(lm.influence(result)$hat),4)
+#guideline
+n<-nrow(Data)
+p<-4
+hii<-(2*p/n)
+print(hii)
+```
+* Our guideline for leverage (hii) is 0.17. We see that La Vallee and V. De Geneve are over this guideline, additionally they are pretty distinctly higher than the other observations. \
+\
+**(c)**\
+Are there any influential observations based on DFFITs and Cook’s Distance?\
+```{r}
+round(sort(abs(dffits(result))),4)
+dffits_guideline<-2*(sqrt(p/n))
+print(dffits_guideline)
+```
+\
+* Based on our guideline for dffits we see that Porrentruy, Rive Gauche, and Sierre are influential. 
+```{r}
+#get rid of scientific notation
+options(scipen=999)
+round(sort(cooks.distance(result)),4)
+```
+* Based on our Cook's distance none of our observations are considered influential, as none of them are over the value of one. \
+**(d)**\
+Briefly describe the difference in what DFFITS and Cook’s distance are measuring.\
+For DFFITS the value indicates how many standard errors the predicted response changes when the model is estimated with and without the observation. It is the measure of influence of the observation on it's own fitted value. Cook's distance measures how the fitted values for all observations change if observation i is removed from the estimated model. \
+
+# Problem 2
+
+**(a)**\
+Calculate the externally studentized residual, ti, for observation 6. Will this be considered outlying in the response?\
+$$ t_{i} = \frac{e_{i}}{\sqrt{MS_{res(i)}(1-h_{ii})}} = e_{i} \sqrt{\frac{n-1-p}{SSres(1-h_{ii})-e_{i}^2}}$$
+$SS_{res}=MS_{res}*df_{res}=(40.13^2)(19-2)=27377.0873$
+$$ t_{6} = \frac{120.829070}{\sqrt{(22.6)^2(1-0.23960510)}} = 120.829070 \sqrt{\frac{19-1-2}{27377.0873(1-0.23960510)-(120.829070^2)}}\ =\ 6.131170535$$
+\
+Generally our guideline for externally studentized residuals is any magnitude over 3 would be considered outlying. This value is over our guidleine and does appear to be outlying.
+
+\
+**(b)**\
+What is the leverage for observation 6? Based on the criterion that leverages greater than 2p/n are considered outlying in the predictor(s), is this observation high leverage?
+Observation 6 leverage is 0.23960510. Guideline = 2 * 2 / 19 = 0.2105263158. Observation 6's leverage is over our guideline and so it is considered high leverage.\
+**(c)**\
+Calculate the DFFITS for observation 6. Briefly describe the role of leverages in DFFITS.\
+$$DFFITS_{i}=\frac{\hat y_{i}-\hat y_{i(i)}}{\sqrt{s_{(i)}^2h_{ii}}}\ =\ t_{i} \sqrt{ \frac {h_{ii}}{1-h_{ii}}}=$$
+$\hat y_{6} = -158.78+(19.96*10.5)=50.8$\ 
+$\hat y_{6(6)}= -234.60+(20.54*10.5)=-18.93$
+$$DFFITS_{(6)}=\frac{50.8--18.93}{\sqrt{40.13^2*0.23960510}}\ =\ 6.131170535 \sqrt{ \frac {0.23960510}{1-0.23960510}}=3.441691$$
+Observations that display high leverage (and are outlying) are more likely to have high values of DFFITS. This is noticeable in the right side formula, as an observation with high leverage will have a larger value for the square root component. The ti is the externally studentized residual, a measure we use to determine if an observation is an outlier. So if the observation is an outlier the value of ti will be larger as well. This combination will lead to a high value of DFFITS, where a high value is indicative of the observation being influential.\
+**(d)**\
+Calculate Cook’s distance for observation 6.\
+$$D_{i} = \frac {(\hat y - \hat y_{(i)})^\prime(\hat y - \hat y_{(i)})}{pMS_{res}}= \frac {r_{i}^2 h_{ii}}{p(1-h_{ii})}$$
+Calculating the right side equation based on the information we have available from the output.\
+$$r_{i}= \frac {e_{i}}{ \sqrt {MS_{res}(1-h_{ii})}}$$
+$$r_{6}= \frac {120.829070}{ \sqrt {40.13^2(1-0.23960510)}}=3.452889$$
+$$r_{6}^2=3.452889^2=11.922446$$
+$$D_{6} =  \frac {11.922446 (0.23960510)}{2(1-0.23960510)}=1.878418$$
+
+\
+
+# Problem 3
+
+Cook's distance has the equivalent formulae
+$$D_{i} = \frac {(\hat \beta - \hat \beta_{(i)})^\prime(x^\prime x)(\hat \beta - \hat \beta_{(i)})}{p\ MS_{res}} = \frac {r_{i}^2}{p} \frac {h_{ii}}{(1-h_{ii})}$$
+Show that these are equivalent. You can utilize $\hat \beta - \hat \beta_{(i)} = (1-h_{ii})^{-1} (x^\prime x)^{-1} x_{i} e_{i}$\
+We know that $r_{i}$ is the studentized residuals equal to $\frac {e_{i}}{\sqrt{MS_{res}(1-h_{ii})}}$ so $r_{i}^2=\frac {e_{i}^2}{MS_{res}(1-h_{ii})}$.\
+We also know that $h_{ii}=x_{i}^\prime (x^\prime x)^{-1}x_{i}$.\
+**Step 1:** Substitute equivalent $\hat \beta - \hat \beta_{(i)}$\
+$$= \frac {x_{i}^\prime (x^\prime x)^{-1}(x^\prime x)(x^\prime x)^{-1} x_{i} e_{i}^2}{(1-h_{ii})(1-h_{ii})\ p\ MS_{res}}$$
+\
+**Step 2:** Rewrite to separate $e_{i}^2\ and\ (1-h_{ii})^2$\
+$$=\frac {e_{i}^2}{(1-h_{ii})^2}\ \frac {x_{i}^\prime (x^\prime x)^{-1}(x^\prime x)(x^\prime x)^{-1} x_{i}}{p\ MS_{res}}$$
+Where $(x^\prime x)(x^\prime x)^{-1} =\ I$
+\
+**Step 3:** $h_{ii}$ substitution and I elimination\
+$$ =\left( \frac {e_{i}}{1-h_{ii}} \right) ^2 \frac {h_{ii}}{p\ MS_{res}}$$
+\
+**Step 4:** Rewrite\
+$$ = \frac {e_{i}^2}{MS_{res}(1-h_{ii})}\ \frac {h_{ii}}{(1-h_{ii})\ p} $$
+$$=\ r_{i}^2\ *\ \frac {1}{p}\ *\ \frac {h_{ii}}{1-h_{ii}}$$
+$$=\ \frac {r_{i}^2}{p} \frac {h_{ii}}{1-h_{ii}}$$
+
+
+

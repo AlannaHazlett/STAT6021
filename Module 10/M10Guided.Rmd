@@ -1,0 +1,100 @@
+---
+title: "M10Guided"
+author: "Alanna Hazlett"
+date: "2024-04-07"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(leaps)
+library(car)
+Data<-read.table("nfl.txt", header=TRUE, sep="")
+```
+
+# Problem 1
+
+Create diagnostic plots for this regression. What are the plots telling us?
+```{r}
+result<-lm(y~x2+x7+x8,data=Data)
+par(mfrow=c(2,2))
+plot(result)
+acf(result$residuals, main="ACF Plot of Residuals")
+```
+\
+Assumption 1: Do the errors have mean of 0 for each value of the predictor -Yes\
+Assumption 2: Do the errors have constant variance for each value of the predictor -Yes\
+Assumption 3: Are the errors independent (acf plot) - Yes\
+Assumption 4: Are the errors normally distributed? -Yes\
+There is a linear relationship between the predictors x2 (Passing yards-Season), x7 (Percent rushing), x8 (Opponent's rushing yards) with our response variable (Games won).\
+
+# Problem 2
+
+Generate partial regression plots for each of the predictors. Interpret what these plots are telling us.
+```{r}
+car::avPlots(result)
+```
+\
+UL: Linear pattern present, positive linear association. Slope of 250 = estimated coefficient of x2 in the model.\
+UR: Linear pattern present, positive linear association. Slope of 0.2 = estimated coefficient of x7 in the model.\
+LL: Linear pattern present, negative linear association. Slope of -0.005 = estimated coefficient of x8 in the model.\
+
+# Problem 3
+
+Using externally studentized residuals, do we have any outliers? What teams are these?\
+```{r}
+sort(abs(rstandard(result)))
+```
+*Guideline externally studentized residuals greater than 2 are flagged as outliers*\
+Team 1 is a potential outlier.\
+
+# Problem 4
+
+Do we have any high leverage data points for this multiple linear regression? What teams are these?
+```{r}
+sort(lm.influence(result)$hat)
+hii<-lm.influence(result)$hat
+n<-nrow(Data)
+p<-4
+hii[hii>2*p/n]
+```
+*Guideline for significant leverage is hii > 2p/n = 2(4)/28 = \
+My results show that there are no high leverage data points in this data set.\
+
+# Problem 5
+
+Use DFFITSi, DFBETASj,i, and Cook’s distance to check for influential observations. What teams are influential?\
+**(DFFITS)**\
+```{r}
+p<-4
+n<-nrow(Data)
+DFFITS<-dffits(result)
+DFFITS[abs(DFFITS)>2*sqrt(p/n)]
+```
+According to DFFITS we have no influential observations.\
+**(DFBETAS)**\
+```{r}
+DFBETAS<-dfbetas(result)
+abs(DFBETAS)>2/sqrt(n)
+DFBETAS[10,]
+DFBETAS[21,]
+```
+*Guideline of significance = 2/sqrt(n) = 0.3780*\
+Team 10 coefficient for x8 = -0.4260\
+Team 21 coefficient for x7 = -0.4148\
+**(Cook's Distance)**\
+```{r}
+COOKS<-cooks.distance(result)
+sort(COOKS)
+#COOKS[COOKS>1]
+```
+According to cook's distance we have no influential observations (teams). 
+
+
+
+
+
+
+
