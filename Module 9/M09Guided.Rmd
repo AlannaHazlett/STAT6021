@@ -1,0 +1,128 @@
+---
+title: "M09Guided"
+author: "Alanna Hazlett"
+date: "2024-03-30"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(tidyverse)
+library(leaps)
+Data<-read.table("nfl.txt", header=TRUE, sep="")
+```
+
+# Problem 1
+
+Use the regsubsets() function from the leaps package to run all possible regressions. Set nbest=2. Identify the model (the predictors and the corresponding estimated coefficients) that is best in terms of Adjusted R2, Mallow's Cp, and BIC.\
+```{r}
+allreg2 <- leaps::regsubsets(y ~., data=Data, nbest=2)
+coef(allreg2,which.max(summary(allreg2)$adjr2))
+coef(allreg2,which.min(summary(allreg2)$cp))
+coef(allreg2,which.min(summary(allreg2)$bic))
+```
+
+# Problem 2 
+
+Run forward selection, starting with an intercept-only model. Report the predictors and the estimated coefficients of the model selected.\
+```{r}
+##intercept only model
+regnull <- lm(y~1, data=Data)
+##model with all predictors
+regfull <- lm(y~., data=Data)
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="forward")
+```
+The forward selection candidate model: 
+$$ y = -1.822 + -0.004 x_{8} + 0.004 x_{2} + 0.217 x_{7} + -0.002 x_{9}$$
+
+# Problem 3
+
+Run backward elimination, starting with the model with all predictors. Report the predictors and the estimated coefficients of the model selected.\
+```{r}
+step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
+```
+The backward elimination candidate model:
+$$ y = -1.822 + 0.004x_{2} + 0.217 x_{7} + -0.004 x_{8} + -0.002 x_{9}$$
+
+# Problem 4
+
+Run stepwise regression, starting with an intercept-only model. Report the predictors and the estimated coefficients of the model selected.\
+```{r}
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
+```
+The stepwise regression candidate model: 
+$$ y = -1.822 + -0.004 x_{8} + 0.004 x_{2} + 0.217 x_{7} + -0.002 x_{9}$$
+
+# Problem 5 
+The PRESS statistic can be used in model validation as well as a criteria for model selection. Unfortunately, the regsubsets() function from the leaps package does not compute the PRESS statistic. Write a function that computes the PRESS statistic for a regression model. Hint: the diagonal elements from the hat matrix can be found using the lm.influence() function.\
+https://stevencarlislewalker.wordpress.com/2013/06/18/calculating-the-press-statistic-in-r/ 
+\
+
+* Residuals of the model\
+r<-resid(model)\
+* Predictively adjusted residuals\
+pr<-resid(model)/(1-lm.influence(model)$hat)\
+* SSres\
+SSres<-sum(r^2) or\
+SSres <- sum((fitted(model) - Data$y)^2)\
+* PRESS\
+sum(pr^2)\
+press<-sum((resid(model)/(1-lm.influence(model)$hat))^2)\
+```{r}
+press<-function(model) {
+  pr<-resid(model)/(1-lm.influence(model)$hat)
+  press<-sum(pr^2)
+  return (press)
+}
+```
+
+# Problem 6
+
+Using the function you wrote in part 5, calculate the PRESS statistic for your regression model with x2, x7, x8 as predictors. Calculate the R2 Prediction for this model, and compare this value with its R2. What comments can you make about the likely predictive performance of this model?\
+https://www.statology.org/sst-ssr-sse-in-r/
+```{r}
+model<-lm(y~x2+x7+x8,data=Data)
+press<-sum((resid(model)/(1-lm.influence(model)$hat))^2)
+sprintf("PRESS: %s", round(press,4))
+SSres <- sum((fitted(model) - Data$y)^2)
+SSR <- sum((fitted(model) - mean(Data$y))^2)
+SSt<-SSR + SSres
+#SST<-sum(anova(model)$"Sum Sq")
+
+# R2 Prediction
+R2Pre<-1-(press/SSt)
+sprintf("R^2 Prediciton: %s", round(R2Pre,4))
+
+# R2
+R2<-SSR/SSt
+sprintf("R^2: %s", round(R2,4))
+#R2<-anova(m)$"Sum Sq"[1]/SST
+```
+* R2 Prediction is the proportion of variability in the response of the new observations that can be explained by our model. \
+* R2 (Coefficient of determination) is an indication of how well the data fits our model, proportion of variance in the response variable that is explained by the predictor. The closer this value is to 1 the better the fit.\
+\
+These values are pretty similar, as we would expect the R2 Prediction is less than R2, as R2 does not have a penalty for additional parameters added to the model. They both indicate a good value for how well the the data fits the model.\
+\
+Professor's note: The model might be able to explain 73.25% of the variability in the new observations. The R2is 0.7863. Both values are fairly high and close to each other, so the model has good predictive ability.\
+
+# Problem 7
+
+Create diagnostic plots for the model with x2, x7, x8 as predictors. What are these plots telling us?
+```{r}
+par(mfrow=c(2,2))
+plot(model)
+acf(model$residuals, main="ACF Plot of Residuals")
+#boxcox(model)
+```
+\
+Assumption 1: Do the errors have mean of 0 for each value of the predictor -Yes\
+Assumption 2: Do the errors have constant variance for each value of the predictor -Yes\
+Assumption 3: Are the errors independent (acf plot) - Yes\
+Assumption 4: Are the errors normally distributed? -Yes\
+There is a linear relationship between the predictors x2 (Passing yards-Season), x7 (Percent rushing), x8 (Opponent's rushing yards) with our response variable (Games won).
+
+
+
+
+

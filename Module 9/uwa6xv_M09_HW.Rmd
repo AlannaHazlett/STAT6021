@@ -1,0 +1,96 @@
+---
+title: "uwa6xv_M09_HW"
+author: "Alanna Hazlett"
+date: "2024-03-30"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Problem 1
+
+Use birthwt from MASS. The goal of the data set is to relate the birthweight of newborns with the characteristics of their mothers during pregnancy.\
+
+```{r, include = FALSE}
+library(tidyverse)
+library(MASS)
+library(leaps)
+```
+
+**(a)**\
+Which of these variables are categorical? Ensure that R is viewing the categorical variables correctly. If needed, use the factor() function to force R to treat the necessary variables as categorical.\
+
+```{r}
+Data<-birthwt
+?birthwt
+#Checked all by using contrasts()
+Data$race<-factor(Data$race)
+#Don't need to factor these as they are already dummy coded
+#Data$low<-factor(Data$low)
+#Data$smoke<-factor(Data$smoke)
+#Data$ht<-factor(Data$ht)
+#Data$ui<-factor(Data$ui)
+```
+
+These are categorical: low, race, smoke, ht, ui.\
+**(b)**\
+A classmate of yours makes the following suggestion: “We should remove the variable low as a predictor for the birth weight of babies.” Do you agree with your classmate? Briefly explain. Hint: you do not need to do any statistical analysis to answer this question.\
+We can remove this variable as it is the "indicator of birth weight less than 2.5 kg" which it just a bucketed/indicator version of our response variable, birthweight. Birthweight of the baby can not predict the birthweight of baby.\
+**(c)**\
+Based on your answer to part 1b, perform all possible regressions using the regsubsets() function from the leaps package (use nbest=1). Write down the predictors that lead to a first-order model having the best\
+i. adjusted R2\
+ii. Mallow’s Cp\
+iii. BIC
+
+```{r}
+#removing low from dataset, so our regression models don't include it
+Data2<-Data[,2:10]
+allreg <- leaps::regsubsets(bwt ~., data=Data2, nbest=1)
+summary(allreg)
+which.max(summary(allreg)$adjr2)
+which.min(summary(allreg)$cp)
+which.min(summary(allreg)$bic)
+```
+
+All three criteria show the same model as the best option: Model 6, which is comprised of lwt, race2, race3, smoke, ht, and ui.\
+**(d)**\
+Based on your answer to part 1b, use backward selection to find the best model according to AIC. Start with the first-order model with all the predictors. What is the regression equation selected?\
+
+```{r}
+regnull <- lm(bwt~1, data=Data2)
+regfull<-lm(bwt~.,data=Data2)
+step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
+```
+
+
+
+The estimated candidate model regression equation is: 
+$$y = \beta_{0} + \beta_{1} x_{1} + \beta_{2}I_{1}+\beta_{3}I_{2}+\beta_{4}x_{3}+\beta_{5}x_{4}+\beta_{6}x_{5}$$ 
+$$ y = 2837.264 + 4.242 x_{lwt} + -457.058 I_{race2} + -348.150 I_{race3} + -356.321 x_{smoke} + -585.193 x_{ht} + -525.524 x_{ui}$$
+
+# Problem 2
+
+**(a)**\
+What is the model selected based on forward selection?\
+share \~ discount + promo + price\
+**(b)**\
+Your client asks you to explain what each step in the output shown above means. Explain the forward selection procedure to your client, for this output.\
+We utilize the value of a term called AIC to inform our decision on choosing a model that best represents the relationship of the items that influence market share sales. We start by considering no items influencing market share sales, we then want to add one item at a time. Each time we do this the value of AIC changes, it decreases up until a certain point. At this point adding another item to our model would increase the value of AIC, indicating that it would perform worse than the model shown in the last step. When this occurs we have found a potential efficient model to represent the relationship of the items that influence market share sales. Based on our output from forward selection our model would be Share \~ discount + promo + price.\
+**(c)**\
+Your client asks if he should go ahead and use the models selected in part 2a. What advice do you have for your client?\
+This is one potential model that we could utilize. We do have other criteria that also help us inform our decision on model selection. It would be wise to see what we conclude from those criteria as well. We need to assess if this model has the potential to solve our research question. If we did decide that this would be the model we would like to look at, we would need to check the regression assumptions to make sure that they are met prior to using the model.\
+
+# Problem 3
+
+-   The advantage of R2 adjusted is that it takes into account the addition of unnecessary variables in the model. It penalizes for it, whereas R2 will only increase.\
+-   One advantage to R2 is that it is easier to calculate using the sum of squares values. Another advantage is that R2 can be used to compare models with the same number of parameters.
+
+# Problem 4
+
+```{r}
+press<-function(model) {
+  pr<-resid(model)/(1-lm.influence(model)$hat)
+  press<-sum(pr^2)
+  return (press)
+}
+```
