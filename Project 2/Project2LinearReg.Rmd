@@ -1,0 +1,303 @@
+---
+title: "Project 2 Linear Regression"
+author: "Alanna Hazlett"
+date: "2024-04-15"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r},include=FALSE}
+library(tidyverse)
+library(faraway)
+library(leaps)
+library(MASS)
+library(car)
+library(GGally)
+library(ggplot2)
+```
+Read Dataframe and set training and testing dfs.
+```{r}
+Data<-read.csv("kc_house_data.csv", sep=",", header=TRUE)
+#Data %>% 
+#  filter(bedrooms == 0)
+which(Data$bedrooms == 33)
+#Data %>% 
+#  filter(bathrooms == 0)
+which(Data$bathrooms == 0)
+```
+Correct observation 15871 where bedroom = 33. Given the rest of the information for this observation this appears to be an entry error and should have been 3, as a house with 33 bedrooms would need to be larger than 1620	sqft and have more than 1.75 bathrooms. 
+
+Observations 876  3120  3468  4869  6995  8478  8485  9774  9855 12654 14424 18380 19453 are 0 bedroom observations, and we considered removing them, however they could be studio apartments, which could be classified as zero bedrooms. 
+
+During this discovery we realized that there are observations with 0 bathrooms and this is impractical and would be uninhabitable or commercial properties. We will remove these 0 bathroom observations: 876  1150  3120  5833  6995  9774  9855 10482 14424 19453.
+
+Change year built to age of house and year renovated to years since renovation.
+```{r}
+Data[15871,]
+Data[15871,4] <- 3
+Data<-Data[-c(876,1150,3120,5833,6995,9774,9855,10482,14424,19453), ]
+#Data collected in 2015
+Data$house_age<-2015 - Data$yr_built
+Data$yrs_reno<-ifelse(Data$yr_renovated == 0,0, 2015 - Data$yr_renovated)
+```
+
+
+
+```{r}
+set.seed(6021)
+sample.data<-sample.int(nrow(Data), floor(.50*nrow(Data)), replace = F)
+train<-Data[sample.data, ]
+test<-Data[-sample.data, ]
+```
+
+
+```{r}
+#train$house_age<-2024 - train$yr_built
+#train$yrs_reno<-ifelse(train$yr_renovated == 0,0, 2024 - train$yr_renovated)
+```
+
+
+Force Factor Variables
+```{r}
+#train$floors<-factor(train$floors)
+#train$bedrooms<-factor(train$bedrooms)
+#train$waterfront<-factor(train$waterfront)
+#train$view<-factor(train$view)
+#train$condition<-factor(train$condition)
+```
+
+Question of interest: What factors influence the price of a house?
+Remove yr_built and yr_renovated since we turned them into age/years since values. I will remove ID, lat, long. The ID is not necessary for our analysis. lat and long are location information that can be given with the zipcode. Remove sqft_lot15 and sqft_living15 as they pertain to neighboring houses.
+```{r}
+train<-train[,-c(1,2,15,16,18,19,20,21)]
+```
+
+Perform Automated Search Procedures for Preliminary Model Building.
+```{r}
+regnull <- lm(price~1, data=train)
+regfull <- lm(price~., data=train)
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="forward", trace = 0 )
+```
+
+```{r}
+step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward", trace = 0)
+```
+
+```{r}
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="both", trace = 0)
+```
+Both Forward Selection and Stepwise show the model as price ~ sqft_living + grade + house_age + waterfront + 
+    view + bedrooms + bathrooms + sqft_lot + condition + floors  
+   
+*Since initial investigation, transforming yr_renovated into yrs_reno the yrs_reno was taken out of the model during step()*
+We will use this as our initial model. 
+```{r}
+model.initial<-lm(price ~ sqft_living + grade + house_age + waterfront + 
+    view + bedrooms + bathrooms + sqft_lot + condition + floors, data = train)
+summary(model.initial)
+```
+*Changing observation 15871 bedroom to 3 from 33. The automated search procedures did not include sqft_above, whereas when it was 33 it did. In the summary(model.initial) sqft_above had a large p-value and then was removed, which is not needed now.*
+
+Check for multicollinearity as bedrooms has a negative coefficient, which is opposite of what we would expect, the increase in number of bedrooms leading to a higher price. Sqft_lot also shows opposite of what we would expect. 
+```{r}
+sort(round(faraway::vif(model.initial),4))
+```
+The VIFs are all within acceptable limits, as they are less than 5.   \
+
+Refine model, by performing all possible regressions using the regsubsets() function from the leaps package (use nbest=1) to determine the predictors that lead to a first-order model having the best\
+i. adjusted R2\
+ii. Mallow’s Cp\
+iii. BIC
+```{r}
+allreg <- leaps::regsubsets(price ~ sqft_living + grade + house_age + waterfront + 
+    view + bedrooms + bathrooms + sqft_lot + condition + floors, data=train, nbest=1)
+summary(allreg)
+which.max(summary(allreg)$adjr2)
+which.min(summary(allreg)$cp)
+which.min(summary(allreg)$bic)
+```
+This indicates that the best model to meet these criteria is model 8, price ~ sqft_living + grade + house_age + waterfront + view + bedrooms + bathrooms + sqft_lot.
+
+Conduct F test to see if we can drop condition and floors from our model: 
+
+$$H_{0}: \hat \beta_{condition} = \hat \beta_{floors} = 0$$
+$$H_{a}: at\ least\ one\ \neq 0$$
+```{r}
+refit1<-lm(price ~ sqft_living + grade + house_age + waterfront + 
+    view + bedrooms + bathrooms + sqft_lot, data = train)
+anova(refit1,model.initial)
+```
+$$ F_{0} = \frac{(SS_{R}(F)-SS_{R}(R))\ /\  r}{(SS_{res}(F))\ /\ (n-p)} = \frac{(SS_{res}(R)-SS_{res}(F))\ /\  r}{(SS_{res}(F))\ /\ (n-p)}$$ 
+$$ F_{0} = \frac{(5.0763e+14-5.0506e+14)\ /\  2}{5.0506e+14 /\ (10801-11)} = 27.4525$$
+\
+Finding p-value and critical value to compare t statistic to:
+```{r}
+(1-pf(27.365,2,(10801-9))) 
+qf(1-(0.05/2),2,(10801-9))
+```
+Our p-value is smaller than our significance level of 0.05, so we reject the null hypothesis. This supports that we should utilize the full model and keep the predictors condition and floors.\
+
+Check regression assumptions:
+```{r}
+par(mfrow=c(2,2))
+plot(model.initial)
+#ACF Doesn't work, not all arguments have the same length
+#acf(model.initial)
+```
+\
+Assumption 1: The errors have a mean of zero, appears met.\
+Assumption 2: Errors have constant variance for each value of the predictor, this is not met as we can see it starts small on the left hand side and gets larger as you go right.\
+Assumption 4: Errors are normally distributed. In Q-Q Residuals we can see that the majority of the studentized residuals follow their theoretical quantities, so we conclude that the assumption is met. 
+
+Remedial Measures:\
+We need to transform our y variable to stabilize the variance. As we can see in the Residuals vs Fitted Values plot the variance increases as fitted values increases, which indicates we will likely transform y with a lambda value < 1. We will use box cox plot to help us determine transformation.
+```{r}
+MASS::boxcox(refit1, lambda = seq(-0.2, 0.2, 0.1)) 
+```
+\
+We will transform our y variable with a log transformation, as zero is the closest whole value to our confidence interval of lambda.
+Perform the necessary transformation to the data. Re-fit the regression with the transformed variable(s) and assess the regression assumptions.\
+```{r}
+ystar<-log(train$price) 
+train<-data.frame(train,ystar)
+refit2<-lm(ystar ~ sqft_living + grade + house_age + waterfront + 
+    view + bedrooms + bathrooms + sqft_lot + condition + floors, data = train)
+par(mfrow=c(2,2))
+plot(refit2)
+```
+\
+Assumption 1: The errors have a mean of zero, appears met.\
+Assumption 2: Errors have constant variance for each value of the predictor, appears met.\
+Assumption 4: Errors are normally distributed. We see improvement in these values as well, appears met.\
+
+
+Creation of partial regression plot to assess predictors.
+```{r}
+car::avPlots(refit2)
+```
+\
+All quantitative variables have an even amount of observations across the line, indicating that they are linear. sqft_lot has an uneven variance, so we can try transforming it.\
+
+
+Trying log transformation on sqft_lot
+```{r}
+sqft_lot_star<- log(train$sqft_lot)
+train<-data.frame(train,sqft_lot_star)
+refit3<-lm(ystar ~ sqft_living + grade + house_age + waterfront + 
+    view + bathrooms + bedrooms + sqft_lot_star + condition + floors  
+    ,data=train)
+par(mfrow=c(2,2))
+plot(refit3)
+```
+
+Assumption 1: The errors have a mean of zero, appears met.\
+Assumption 2: Errors have constant variance for each value of the predictor, appears met.\
+Assumption 4: Errors are normally distributed, appears met.\
+
+```{r}
+car::avPlots(refit3)
+```
+```{r}
+options(scipen=999)
+summary(refit3)
+car::vif(refit3)
+```
+```{r}
+which(train$bedrooms == 9)
+#train %>% 
+ # filter(bedrooms == 9)
+```
+
+
+
+\
+sqft_lot_star appears to have a better variance now after transformation. 
+
+*Since observation 15871 was corrected at the beginnning of the model production I have since removed my previous work determining that it was a high leverage and influential data point*
+
+
+This is high leverage, because the predictor value, number of bedrooms, is extreme compared to the rest of the data. We can confirm this thought by calculating leverage values.
+```{r}
+#sort(lm.influence(refit3)$hat)
+hii<-lm.influence(refit3)$hat
+n<-nrow(train)
+p<-11
+sort(hii[hii>0.0075])
+2*p/n
+```
+
+
+Our threshold value is 0.002, but there is generally a gradual increase in all of our observations. There is a jump from 0.00768 to 0.0113. \
+
+Detecting outliers:\
+Standardized residuals:\
+```{r}
+head(sort(abs(refit3$res)),20)
+```
+Studentized residuals: Estimated Std deviations it's predicted response is from the actual response. Studentized residuals greater than 2 are typically flagged as outlying. \
+```{r}
+head(sort(abs(rstandard(refit3))),20)
+```
+We have no studentized residuals greater than 2. 
+
+Externally studentized residuals: Observations with externally studentized residuals with magnitude greater than 3 are typically flagged as being outlying.\
+```{r}
+head(sort(abs(rstudent(refit3))),20)
+```
+We have no externally studentized residuals with magnitude greater than 3. 
+
+We can test the influence with DFBETAs. 
+```{r}
+dfbetas<-dfbetas(refit3)
+#abs(dfbetas) > 0.05
+#dfbetas_threshold<-2/sqrt(n)
+#dfbetas_threshold
+#as_tibble(abs(dfbetas(refit3))>0.2) %>% 
+#  filter(sqft_living == TRUE | grade == TRUE | house_age == TRUE | waterfront == TRUE | 
+#    view == TRUE | bathrooms == TRUE | bedrooms == TRUE | sqft_lot_star == TRUE | condition == TRUE | floors == TRUE)
+```
+*I couldn't figure out how to narrow down this matrix into a useable format* 
+
+We can also test the influence with DFFITS
+```{r}
+DFFITS<-dffits(refit3)
+DFFITS_threshold = 2*sqrt(p/n)
+sort(abs(DFFITS[abs(DFFITS)>0.2]))
+```
+
+There are a lot of observations that are greater than our threshold, however we can see a very steady increase in the DFFITS values. There may be potential argument for  8093      8451     18849      7253  as significantly influential, even more so for  7253.
+
+```{r}
+Data[c(8093,8451,18849,7253),-c(1,2,16,18,19,20,21)]
+```
+*Nothing immediately noticeable to me regarding these observations*
+
+MSE Evaluations for models utilized: 
+
+```{r}
+#transforming sqft_lot in test df
+sqft_lot_star<- log(test$sqft_lot)
+test<-data.frame(test,sqft_lot_star)
+#transforming price in test df
+ystar<-log(test$price) 
+test<-data.frame(test,ystar)
+#narrowing test df down to predictors in our model only
+test<-test[,c(25,6,12,22,9,10,5,4,24,11,8)]
+```
+#test<-test %>% 
+#  dplyr::select(ystar, sqft_living, grade,  house_age , waterfront,  
+#    view  ,bathrooms,  bedrooms , sqft_lot_star , condition , floors)
+```{r}
+#Predicted response values
+preds<-predict(refit3, newdata = test)
+refit3_MSE<-sum(((test$ystar - preds) ** 2) / nrow(test))
+print(refit3_MSE)
+refit3_RMSE<-sqrt(refit3_MSE)
+refit3_RMSE
+```
+
+
+
+
+
+
