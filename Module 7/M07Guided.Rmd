@@ -1,0 +1,229 @@
+---
+title: "M07Guided"
+author: "Alanna Hazlett"
+date: "2024-03-18"
+output:
+  pdf_document: default
+  html_document: default
+---
+x1: Age. Age in years\
+x2: Weight. Weight in pounds\
+x3: HtShoes. Height with shoes in cm\
+x4: Ht. Height without shoes in cm\
+x5: Seated. Seated height in cm\
+x6: Arm. Arm length in cm\
+x7: Thigh. Thigh length in cm\
+x8: Leg. Lower leg length in cm\
+y:  hipcenter
+
+```{r, include = FALSE}
+library(tidyverse)
+library(faraway)
+library(GGally)
+Data<-seatpos
+```
+
+# Problem 1 
+
+Fit the full model with all the predictors. Using the summary() function, comment on the results of the t tests and ANOVA F test from the output.\
+```{r}
+#Capitalized Hipcenter, because all of the other variables were capitalized
+Data<- Data %>% 
+  rename(Hipcenter = hipcenter)
+```
+```{r}
+#Could have directly called dataset and ran lm
+#result<-lm(hipcenter~., data=seatpos)
+result.full<-lm(Hipcenter~.,data=Data) 
+summary(result.full)
+qt(1-(0.05/2),(38-10))
+```
+Our t values and p-values for all of our predictors indicate that they are statistically insignificant, meaning we would fail to reject the null hypothesis for each predictor equaling zero. This indicates that we should drop each predictor where we fail to reject the null hypothesis. Since all of the predictors indicate this, we would drop all of our predictors.\
+
+**Important note: While Ht and HtShoes are almost a correlation of 1, we would expect them to have a similar sign in their estimates, but they are opposite of eachother, this is due to the large std. error, that could cause them to flip to the other side of the zero.\**
+
+**It is important to check the signs to make sure they go the directions you would expect. **  
+
+Our F statistic on 8 and 29 df is 7.94, we compare this to a F 8, 29 distribution.
+```{r}
+qf(1-(0.05/2),8,29)
+```
+Our F statistic is larger than our critical value and our p-value is smaller than our significance level , so we reject the null hypothesis of all coefficients equaling zero. The data support the claim that our model with the eight predictors is useful in predicting Hipcenter.
+
+# Problem 2 
+
+Briefly explain why, based on your output from part 1, you suspect the model shows signs of multicollinearity.\
+The two tests are contradictory, one is stating that none of the predictors are good for the model and the other states that they are good for the model. It also appears that Ht (Height bare foot in cm) has a large standard error for it's coefficient. 
+
+Professor's  answer:\
+The p-value for the F test suggests our model is useful in predicting the response. However, the individual t tests suggests none of the predictors are significant (given the presence of the other predictors). Also, the standard errors for some of the estimated coefficients are large.These observations suggest the presence of multicollinearity.
+
+# Problem 3
+
+Provide the output for all the pairwise correlations among the predictors. Comment briefly on the pairwise correlations.\
+```{r}
+round(cor(Data),3)
+```
+Almost all of the correlation pairs are high, except: All predictors with Age\
+
+# Problem 4
+
+Check the variance inflation factors (VIFs). What do these values indicate about multicollinearity?
+```{r}
+round(faraway::vif(result.full),2)
+```
+Some level of multicollinearity is noted by Seated and Leg. There is extremely high level of multicollineartiy noted by HtShoes and Ht.\
+Professor's notes: VIF for HtShoes is 307.429378, which tells us that the variance for HtShoes is 307 times larger than it would have been without collinearity. Note: you cannot apply this as a correction, the VIF just gives a sense of the effect.
+
+# Problem 5
+
+Looking at the data, we may want to look at the correlations for the variables that describe length of body parts: HtShoes, Ht, Seated, Arm, Thigh, and Leg. Comment on the correlations of these six predictors.\
+These are all highly positively correlated with one another. 
+
+```{r}
+#Could have pulled just these points
+#round(cor(seatpos[,3:8]),3)
+```
+
+# Problem 6
+
+Since all the six predictors from the previous part are highly correlated, you may decide to just use one of the predictors and remove the other five from the model. Decide which predictor out of the six you want to keep, and briefly explain your choice.\
+I would choose Thigh, which is the length of the thigh in cm. I would choose this because Hipcenter is the horizontal distance of the hips to a specified point in the car. The thigh length I believe would play the largest role in this, because it is also a horizontal distance.  
+
+# Problem 7
+
+Based on your choice in part 6, fit a multiple regression with your choice of predictor to keep, along with the predictors x1 = Age and x2 =Weight. Check the VIFs for this model. Comment on whether we still have an issue with multicollinearity.\
+```{r}
+# This was the wrong choice, we could have based our decision on the VIFs from earlier--choose the largest VIF.
+result.reduced<-lm(Hipcenter~ Age + Weight + Thigh, data=Data)
+round(faraway::vif(result.reduced),4)
+result.reduced2<-lm(Hipcenter~ Age + Weight + Ht, data=Data)
+round(faraway::vif(result.reduced2),4)
+```
+No, it appears that we no longer have an issue with multicolinearity based on the VIFs.\
+
+# Problem 8 
+
+Conduct a general linear F test to investigate if the predictors you dropped from the full model were jointly insignificant. Be sure to state a relevant conclusion.\
+\
+## **Two Methods to Solve General Linear F test***
+The null hypothesis for the general linear F test to drop the other predictors for the kept predictor being Ht.
+$$H_{0}: \hat \beta_{3} = \hat \beta_{5} = \hat \beta_{6} = \hat \beta_{7} = \hat \beta_{8} = 0$$
+$$H_{a}: at\ least\ one\ \neq 0$$
+### 1. Compare F0 statistic to F (r, n-p) distribution:\
+
+```{r}
+anova(result.reduced,result.full)
+anova(result.reduced2,result.full)
+```
+
+$$ F_{0} = \frac{(SS_{R}(F)-SS_{R}(R))\ /\  r}{(SS_{res}(F))\ /\ (n-p)} = \frac{(SS_{res}(R)-SS_{res}(F))\ /\  r}{(SS_{res}(F))\ /\ (n-p)}$$
+$$ F_{0} = \frac{(57963-41262)\ /\  5}{41262\ /\ (38-9)} = 2.3477$$
+```{r}
+qf(1-0.05,5,38-9)
+```
+For Thigh: Our F0 statistic is less than our critical value, and our p-value of 0.06611 is greater than our significance level.\
+We fail to reject the null hypothesis, so we go with the reduced model.\
+\
+For Ht: The F statistic is 0.5623, with p-value 0.7279. We do not reject the null hypothesis. Our data suggest we can drop the predictors x3 = HtShoes, x5 = Seated, x6 = Arm, x7 = Thigh, x8 = Leg and go with the reduced model.
+
+
+### 2. Sequential Sum of Squares/Extra Sums of Squares\
+
+```{r}
+result.seq<-lm(Hipcenter ~ Age + Weight + Thigh + HtShoes + Ht + Seated + Arm + Leg, data = Data)
+anova(result.seq)
+```
+$$ F_{0} = \frac{(131640-114938)\ /\  5}{(41262)\ /\ (38-9)} = 2.3477$$
+Our F0 statistic is less than our critical value, and our p-value of 0.06611 is greater than our significance level.\
+We fail to reject the null hypothesis, so we go with the reduced model.\
+
+# Problem 9 
+
+Produce the diagnostic plots for your model from part 7. Comment on whether the regression assumptions are met.\
+```{r}
+#Don't need scatterplots
+#Data.Reduced<-data.frame(Data$Hipcenter, Data$Age, Data$Weight, Data$Thigh)
+#ggpairs(Data.Reduced)
+
+#Thigh
+par(mfrow=c(2,2))
+plot(result.reduced)
+acf(result.reduced$residuals, main="ACF Plot of Residuals")
+
+#Ht
+par(mfrow=c(2,2))
+plot(result.reduced2)
+acf(result.reduced2$residuals, main="ACF Plot of Residuals")
+
+```
+\
+In Residuals vs Fitted the errors appear to have a mean near 0, asssumption 1 is met.\
+In Residuals vs Fitted we can see that the variance or the errors is relatvely constant lef to right, assumption 2 is met.\
+In ACF Plot confirms the belief that the observations are uncorrelated and the correlations between the vector of observations and lagged versions of these observations are very near zero, assumption 3 is met.\
+In Q-Q we can see that the observations are normally distribute, assumption 4 is met.\
+\
+Professor's Note: Based on the residual plot, the assumptions for the multiple regression model appear to be satisfied. The residuals generally fall in a horizontal band around 0, have constant variance, and have no apparent curvature or pattern. There may be one residual that is fairly large in magnitude, but by and large, the assumptions are met. Since the plots on the QQ plot fall close to the diagonal line, the normality assumption of the errors are met.
+
+
+# Problem 10
+
+Based on your results, write your estimated regression equation from part 7. Also report the R2 of this model, and compare with the R2 you reported in part 1, for the model with all predictors. Also comment on the adjusted R2 for both models. 
+```{r}
+summary(result.reduced)
+```
+### The estimated regression equation for Thigh reduced model is:
+$$ \hat y = \hat \beta_{0}+\hat \beta_{Age}x+\hat \beta_{Weight}x+\hat \beta_{Thigh}x$$
+$$ \hat y = \hat \beta_{0}+\hat \beta_{Age}x+\hat \beta_{Weight}x+\hat \beta_{Thigh}x$$
+$$\hat y = 126.79 + 1.07x_{Age} + -0.77x_{Weight} + -5.43x_{Thigh}$$
+
+## Thigh
+
+### R^2
+
+R^2 for the reduced model is 0.5597.\
+R^2 for the full model is 0.6866.\
+R^2 is the proportion of variance in the response variable that is explained by the predictors. We notice a slight decline in R^2 from the full model to the reduced model, this is due to the removal of predictors.\
+
+### R^2 Adjusted
+
+R^2 adjusted for the reduced model is 0.5208.\
+R^2 adjusted for the full model is 0.6001 .\
+R^2 adjusted is not affected by the increase of predictors and only increases if the model is more useful. 
+
+**We notice that in R^2 Adjusted is higher in the full model than the reduced model. This is a clue that we picked the wrong predictor to keep.**
+
+## Ht
+
+```{r}
+summary(result.reduced2)
+```
+
+$$\hat y = 528.298 + 0.520x_{Age} + 0.004x_{Weight} + -4.212x_{Ht}$$
+
+### R^2
+
+R^2 for the reduced model is 0.6562.\
+R^2 for the full model is 0.6866.\
+We notice a slight decline in R^2 from the full model to the reduced model.\
+
+### R^2 Adjusted
+
+R^2 adjusted for the reduced model is  0.6258.\
+R^2 adjusted for the full model is 0.6001.\
+R^2 adjusted is not affected by the increase of predictors and only increases if the model is more useful.  
+ 
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
